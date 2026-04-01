@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.routes';
 import transactionRoutes from './routes/transaction.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 
 // Load environment variables from .env
 dotenv.config();
@@ -25,6 +26,7 @@ mongoose.connect(mongoURI!)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Basic health check route
 app.get('/api/health', (req: Request, res: Response) => {
