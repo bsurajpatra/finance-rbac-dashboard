@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import authRoutes from './routes/auth.routes';
+import transactionRoutes from './routes/transaction.routes';
 
 // Load environment variables from .env
 dotenv.config();
@@ -21,6 +23,9 @@ mongoose.connect(mongoURI!)
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/transactions', transactionRoutes);
+
 // Basic health check route
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).send('Server running');

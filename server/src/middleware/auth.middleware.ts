@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { verifyToken, TokenPayload } from '../utils/jwt';
 import { Role } from '../types';
 
 /**
@@ -9,8 +10,8 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        id: string;
-        role: Role;
+        userId: string;
+        role: string;
       };
     }
   }
@@ -19,50 +20,73 @@ declare global {
 /**
  * Authenticate Middleware
  * 
- * Mock implementation to bypass hard security configurations while the application structures
- * are being wired up. Later, this will actively extract algorithms like JSON Web Tokens (JWT).
+ * Secures routes by natively reading standard "Bearer" authorization headers,
+ * securely cryptographically validating their JWT payload against the signature,
+ * and mapping the decoded document to `req.user` before continuing execution logic.
  */
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
-  // TODO: Implement proper JWT token parsing from authorization headers here
+  try {
+    // 1. Read Authorization header
+    const authHeader = req.header('Authorization');
 
-  // Mocking an authenticated user configuration to test RBAC logic quickly
-  req.user = {
-    id: '507f1f77bcf86cd799439011', // A simulated 24 character MongoDB Hex string
-    role: Role.ADMIN, // Configured to simulate top-level system access automatically
-  };
+    // 2. Client Input Security Validations
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized: Missing or malformed authorization header.' });
+      return;
+    }
 
-  // Yield runtime to the consecutive application logic layer
-  next();
+    // 3. Safely Extract token isolating it from "Bearer " prefix
+    const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized: Missing token string.' });
+      return;
+    }
+
+    // 4. Synchronously verify token validity dynamically pulling from system environment scopes
+    const decoded = verifyToken(token);
+
+    // 5. Hydrate Request context for subsequent chained middleware elements automatically
+    req.user = {
+      userId: decoded.userId,
+      role: decoded.role,
+    };
+
+    // 6. Push runtime execution over to the following matched stack routine
+    next();
+  } catch (error) {
+    // Protect against token staleness (expiresIn) and cryptographic falsifications safely
+    console.error('[JWT Auth Middleware Error]:', error);
+    res.status(401).json({ error: 'Unauthorized: Invalid or expired access token.' });
+  }
 };
 
 /**
  * Authorize Roles Middleware Factory
  * 
- * A curried, highly reusable validation factory. Pass any permutations of permitted enum roles,
- * and the subsequent logic safely shields controllers against under-privileged accounts.
+ * Leverages currying patterns mapping deeply to strict application enums 
+ * establishing localized security layers that shield specific routes from 
+ * under-privileged interactions out of scope.
  * 
  * @example
- * router.post('/transactions', authenticate, authorizeRoles(Role.ADMIN, Role.ANALYST), ...)
+ * router.delete('/financials', authenticate, authorizeRoles(Role.ADMIN), controllerLogic)
  */
-export const authorizeRoles = (...roles: Role[]) => {
+export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    
-    // Failsafe condition ensuring this middleware is used *after* authentication occurs
+    // Strictly requires placement execution after the root 'authenticate' wrapper logic
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized: No active authentication detected.' });
+      res.status(401).json({ error: 'Unauthorized: Unable to map identity.' });
       return;
     }
 
-    // RBAC Permissions Check
-    // Prohibits proceeding if the injected session role defaults fall outside authorized perimeters
+    // Dynamically analyzes authenticated scopes isolating parameters to explicitly permitted enumerations
     if (!roles.includes(req.user.role)) {
       res.status(403).json({ 
-        error: 'Forbidden: You do not have sufficient permissions to perform this action.' 
+        error: 'Forbidden: Insufficient privileges to access this resource.' 
       });
       return;
     }
 
-    // Securely routes traffic onward to its actual intended API destination
     next();
   };
 };
