@@ -19,13 +19,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Global API Interceptor handling asynchronous RBAC routing exceptions intelligently
+    // Global API Interceptor handling asynchronous RBAC routing exceptions intelligently
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Session staleness or deletion causes native pipeline failures
-    if (error.response && error.response.status === 401) {
+    // 1. Identify context-specific bypass routes
+    // We shouldn't force-redirect the user if they are already attempting to authenticate
+    const isAuthRoute = error.config.url.includes('/auth/login') || 
+                        error.config.url.includes('/auth/register') ||
+                        error.config.url.includes('/auth/rotate-token');
+
+    // 2. Session staleness or deletion causes native pipeline failures
+    // Redirect is only applied to protected resource requests to prevent state-loss on forms
+    if (error.response && error.response.status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       // Execute strict hard-redirect breaking React Router constraints safely resolving session logic
       window.location.href = '/login';
     }

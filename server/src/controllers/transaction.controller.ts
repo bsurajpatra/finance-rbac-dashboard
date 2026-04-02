@@ -12,7 +12,7 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
 
     // 1. Explicit Property Validation
     if (amount === undefined || !type || !category) {
-      res.status(400).json({ error: 'Please submit all required properties: amount, type, and category.' });
+      res.status(400).json({ success: false, message: 'Please submit all required properties: amount, type, and category.' });
       return;
     }
 
@@ -20,7 +20,7 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
     const userId = req.user?.userId;
     if (!userId) {
        // Deeply corrupted session map
-      res.status(401).json({ error: 'Unauthorized: Internal identity map missing.' });
+      res.status(401).json({ success: false, message: 'Unauthorized: Internal identity map missing.' });
       return;
     }
 
@@ -62,7 +62,7 @@ export const getTransactions = async (req: Request, res: Response): Promise<void
 
     // Validate security scope presence
     if (!userId || !userRole) {
-      res.status(401).json({ error: 'Unauthorized: Session details missing.' });
+      res.status(401).json({ success: false, message: 'Unauthorized: Session details missing.' });
       return;
     }
 
@@ -155,7 +155,7 @@ export const updateTransaction = async (req: Request, res: Response): Promise<vo
     const updatePayload = req.body;
 
     if (!transactionId) {
-      res.status(400).json({ error: 'Invalid URL Format: Target Transaction ID is mandatory.' });
+      res.status(400).json({ success: false, message: 'Invalid URL Format: Target Transaction ID is mandatory.' });
       return;
     }
 
@@ -199,7 +199,7 @@ export const deleteTransaction = async (req: Request, res: Response): Promise<vo
     const transactionId = req.params.id;
 
     if (!transactionId) {
-      res.status(400).json({ error: 'Invalid URL Format: Target Transaction ID is mandatory.' });
+      res.status(400).json({ success: false, message: 'Invalid URL Format: Target Transaction ID is mandatory.' });
       return;
     }
 

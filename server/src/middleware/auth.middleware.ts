@@ -33,7 +33,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     // 2. Client Input Security Validations
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Unauthorized: Missing or malformed authorization header.' });
+      res.status(401).json({ success: false, message: 'Unauthorized: Missing or malformed authorization header.' });
       return;
     }
 
@@ -41,7 +41,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const token = authHeader.split(' ')[1];
     
     if (!token) {
-      res.status(401).json({ error: 'Unauthorized: Missing token string.' });
+      res.status(401).json({ success: false, message: 'Unauthorized: Missing token string.' });
       return;
     }
 
@@ -53,7 +53,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     
     // Completely invalidates the authorization if an Admin suddenly deleted/suspended them
     if (!secureUser || secureUser.isActive === false) {
-      res.status(403).json({ error: 'Forbidden: Your session was forcefully terminated or globally suspended.' });
+      res.status(403).json({ success: false, message: 'Forbidden: Your session was forcefully terminated or globally suspended.' });
       return;
     }
 
@@ -68,7 +68,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   } catch (error) {
     // Protect against token staleness (expiresIn) and cryptographic falsifications safely
     console.error('[JWT Auth Middleware Error]:', error);
-    res.status(401).json({ error: 'Unauthorized: Invalid or expired access token.' });
+    res.status(401).json({ success: false, message: 'Unauthorized: Invalid or expired access token.' });
   }
 };
 
@@ -86,14 +86,15 @@ export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     // Strictly requires placement execution after the root 'authenticate' wrapper logic
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized: Unable to map identity.' });
+      res.status(401).json({ success: false, message: 'Unauthorized: Unable to map identity.' });
       return;
     }
 
     // Dynamically analyzes authenticated scopes isolating parameters to explicitly permitted enumerations
     if (!roles.includes(req.user.role)) {
       res.status(403).json({ 
-        error: 'Forbidden: Insufficient privileges to access this resource.' 
+        success: false,
+        message: 'Forbidden: Insufficient privileges to access this resource.' 
       });
       return;
     }
