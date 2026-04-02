@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import User from '../models/user.model';
-import { generateToken } from '../utils/jwt';
+import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt';
 
 /**
  * Registers a new user into the database securely.
@@ -75,6 +75,12 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 2.5 Ensure the account hasn't been structurally suspended by an administrator
+    if (user.isActive === false) {
+      res.status(403).json({ error: 'Forbidden: User account is inactive or disabled.' });
+      return;
+    }
+
     // 3. Cryptographic Password Comparison
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
@@ -82,8 +88,9 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 4. JWT Generation
-    const token = generateToken(user._id.toString(), user.role);
+    // 4. Dual Token Generation (15m Access / 7d Refresh)
+    const token = generateAccessToken(user._id.toString(), user.role);
+    const refreshToken = generateRefreshToken(user._id.toString());
 
     // 5. Output Safe Payload (Excluding Password)
     const userResponse = {
@@ -97,10 +104,45 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
       message: 'Login successful!',
       token,
+      refreshToken,
       user: userResponse,
     });
   } catch (error) {
     console.error('[Login User Error]:', error);
     res.status(500).json({ error: 'Internal Server Error encountered during login.' });
+  }
+};
+
+/**
+ * Validates a Refresh Token and issues a fresh 15-minute Access Token.
+ * Prevents continuous re-authentication UX friction while maintaining high security.
+ */
+export const rotateToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({ error: 'Missing refresh token payload.' });
+      return;
+    }
+
+    // Explicitly verify against the refresh secret
+    const decoded = verifyToken(refreshToken, true);
+    
+    const user = await User.findById(decoded.userId);
+    if (!user || !user.isActive) {
+      res.status(403).json({ error: 'Forbidden: Valid user account not identified.' });
+      return;
+    }
+
+    // Issue fresh Access Token
+    const token = generateAccessToken(user._id.toString(), user.role);
+
+    res.status(200).json({
+      message: 'Token rotation successful.',
+      token,
+    });
+  } catch (error) {
+    res.status(401).json({ error: 'Unauthorized: Refresh token is invalid or expired.' });
   }
 };

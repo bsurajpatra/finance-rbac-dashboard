@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt';
 import { Role } from '../types';
+import User from '../models/user.model';
 
 /**
  * Augment the standard Express Request interface namespace globally
@@ -22,9 +23,10 @@ declare global {
  * 
  * Secures routes by natively reading standard "Bearer" authorization headers,
  * securely cryptographically validating their JWT payload against the signature,
- * and mapping the decoded document to `req.user` before continuing execution logic.
+ * dynamically confirming their identity inside MongoDB (catching mid-session suspensions),
+ * and finally linking the resulting properties seamlessly into downstream route scope.
  */
-export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // 1. Read Authorization header
     const authHeader = req.header('Authorization');
@@ -44,12 +46,21 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     }
 
     // 4. Synchronously verify token validity dynamically pulling from system environment scopes
-    const decoded = verifyToken(token);
+    const decoded: any = verifyToken(token);
 
-    // 5. Hydrate Request context for subsequent chained middleware elements automatically
+    // 4.5 Look up the actual record executing an aggressive stale-session check preventing suspended tokens
+    const secureUser = await User.findById(decoded.userId);
+    
+    // Completely invalidates the authorization if an Admin suddenly deleted/suspended them
+    if (!secureUser || secureUser.isActive === false) {
+      res.status(403).json({ error: 'Forbidden: Your session was forcefully terminated or globally suspended.' });
+      return;
+    }
+
+    // 5. Hydrate Request context natively using realtime database state
     req.user = {
-      userId: decoded.userId,
-      role: decoded.role,
+      userId: secureUser._id.toString(),
+      role: secureUser.role, // Overrides the JWT payload dynamically to instantly enable mid-session role escalations
     };
 
     // 6. Push runtime execution over to the following matched stack routine

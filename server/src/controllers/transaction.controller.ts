@@ -69,7 +69,7 @@ export const getTransactions = async (req: Request, res: Response): Promise<void
      * 1. Initialize Dynamic Query Filter
      * We type assert correctly to map MongoDB parameters smoothly.
      */
-    const filter: any = {};
+    const filter: any = { isDeleted: false }; // Exclude soft-deleted records from all global lookups
 
     // Apply URL Query Parameters if provided
     const { type, category, startDate, endDate } = req.query;
@@ -102,21 +102,38 @@ export const getTransactions = async (req: Request, res: Response): Promise<void
     }
 
     /**
-     * 2. RBAC Horizontal Data Partitioning Logic
-     * Admins skip the `createdBy` boundary for vast overviews. Lower privileges 
-     * natively inject strict lookup bounds restricting query views solely to owned data.
+     * 2. RBAC Configuration Note
+     * This system uses a shared financial data model where all users can view all transactions.
+     * Role-based access control is applied only to modification operations.
      */
-    if (userRole !== Role.ADMIN) {
-      filter.createdBy = userId;
-    }
+    // Restricting `filter.createdBy` has been removed to allow organizational wide reads.
 
-    // 3. Extract mapped elements returning them logically ordered chronologically 
-    const transactions = await Transaction.find(filter).sort({ date: -1 });
+    /**
+     * 3. Pagination & Execution Logic
+     * Dynamically map query parameters for performant windowed data retrieval.
+     */
+    const page = parseInt((req.query.page as string) || '1', 10);
+    const limit = parseInt((req.query.limit as string) || '10', 10);
+    const skip = (page - 1) * limit;
+
+    // 4. Extract mapped elements returning them logically ordered chronologically 
+    const transactions = await Transaction.find(filter)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Transaction.countDocuments(filter);
 
     res.status(200).json({
       message: 'Payload generation successful.',
       count: transactions.length,
       transactions,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      }
     });
   } catch (error) {
     console.error('[Fetch Transactions Exception]:', error);
@@ -181,15 +198,20 @@ export const deleteTransaction = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const removedDocument = await Transaction.findByIdAndDelete(transactionId);
+    // Soft delete: Flag the record instead of physical purge
+    const removedDocument = await Transaction.findByIdAndUpdate(
+      transactionId,
+      { isDeleted: true },
+      { new: true }
+    );
 
     if (!removedDocument) {
-      res.status(404).json({ error: 'Transaction not found. No deletions occurred.' });
+      res.status(404).json({ error: 'Transaction not found. No modifications occurred.' });
       return;
     }
 
     res.status(200).json({
-      message: 'Database structure purged. Action concluded safely.',
+      message: 'Transaction successfully deactivated. Record preserved in audit log.',
       id: transactionId,
     });
   } catch (error: any) {

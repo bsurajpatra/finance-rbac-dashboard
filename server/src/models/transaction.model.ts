@@ -11,6 +11,7 @@ export interface ITransaction extends Document {
   date: Date;
   note?: string;
   createdBy: Types.ObjectId;
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,10 @@ const TransactionSchema: Schema<ITransaction> = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User', // Establishes relation with the "User" Mongoose model
       required: [true, 'A transaction must strictly belong to a User'],
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false, // Ensures all new records are structurally active
     },
   },
   {

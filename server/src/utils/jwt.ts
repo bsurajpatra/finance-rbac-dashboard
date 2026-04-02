@@ -9,48 +9,51 @@ export interface TokenPayload {
 }
 
 /**
- * Securely generates a JSON Web Token payload to authenticate future HTTP requests.
+ * Generates a short-lived Access Token for primary API interactions.
  * 
  * @param userId - Extracted MongoDB `_id` tied to the user session
  * @param role - The configured Role permission block attached to the user scope
- * @returns string - Strongly encrypted output valid for exactly 1 day
+ * @returns string - Strongly encrypted output valid for exactly 15 minutes
  */
-export const generateToken = (userId: string, role: string): string => {
+export const generateAccessToken = (userId: string, role: string): string => {
   const secret = process.env.JWT_SECRET;
-
-  // Runtime boundary check effectively preventing the system from initializing weak tokens
-  if (!secret) {
-    throw new Error('FATAL SECURITY ERROR: process.env.JWT_SECRET is completely missing!');
-  }
+  if (!secret) throw new Error('FATAL SECURITY ERROR: JWT_SECRET missing!');
 
   const payload: TokenPayload = { userId, role };
-  const options: SignOptions = { expiresIn: '1d' };
+  return jwt.sign(payload, secret, { expiresIn: '15m' });
+};
 
-  // Executes standard SHA-based token signature hashing
-  return jwt.sign(payload, secret, options);
+/**
+ * Generates a long-lived Refresh Token strictly for session rotation logic.
+ * 
+ * @param userId - Extracted MongoDB `_id` tied to the user session
+ * @returns string - Strongly encrypted output valid for 7 days
+ */
+export const generateRefreshToken = (userId: string): string => {
+  const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  if (!secret) throw new Error('FATAL SECURITY ERROR: JWT_SECRET missing!');
+
+  return jwt.sign({ userId }, secret, { expiresIn: '7d' });
 };
 
 /**
  * Decodes and deeply verifies the raw string token presented within user requests.
  * 
  * @param token - String-based JWT payload originating from the authorization headers
- * @returns TokenPayload - Type-safe structural representation of the decoded internal parameters
- * @throws Error cleanly terminating execution pipelines upon identifying tampered/stale sessions
+ * @param isRefresh - Whether we are verifying a Refresh Token (uses different secret check)
  */
-export const verifyToken = (token: string): TokenPayload => {
-  const secret = process.env.JWT_SECRET;
+export const verifyToken = (token: string, isRefresh: boolean = false): any => {
+  const secret = isRefresh 
+    ? (process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET)
+    : process.env.JWT_SECRET;
 
   if (!secret) {
     throw new Error('FATAL SECURITY ERROR: process.env.JWT_SECRET is completely missing!');
   }
 
   try {
-    // Explicitly casting verify returns immediately into our structured generic
-    const decodedPayload = jwt.verify(token, secret) as TokenPayload;
-    return decodedPayload;
+    return jwt.verify(token, secret);
   } catch (error) {
-    // Gracefully catch standard generic jsonwebtoken error manifestations 
-    // wrapping them with our application's consistent error pattern 
-    throw new Error('Unauthorized Authorization Block: The provided access token is corrupted or expired.');
+    throw new Error(`Unauthorized: The provided ${isRefresh ? 'refresh' : 'access'} token is corrupted or expired.`);
   }
 };

@@ -18,15 +18,11 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     }
 
     /**
-     * 1. RBAC Matrix Filter Initialization
-     * We map the `createdBy` boundary specifically as a native `mongoose.Types.ObjectId`.
-     * Unlike `find()`, standard MongoDB aggregations do not cast strings dynamically,
-     * so it must be structurally enforced here to avoid silent aggregation failures.
+     * 1. Shared Analytical Configuration Array
+     * This system uses a shared financial data model where all users can view all transactions.
+     * Role-based access control is applied only to modification operations.
      */
-    const matchStage: any = {};
-    if (userRole !== Role.ADMIN) {
-      matchStage.createdBy = new mongoose.Types.ObjectId(userId);
-    }
+    const matchStage: any = { isDeleted: false };
 
     /**
      * 2. Optimize Pipeline -> $facet Aggregation
@@ -34,7 +30,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
      * seamlessly simultaneously without triggering triple database network roundtrips.
      */
     const aggregationResult = await Transaction.aggregate([
-      // Execute strict role-based permission isolation BEFORE compiling any statistics
+      // Execute match parameters (left bare intentionally to grab all system documents)
       { $match: matchStage },
       {
         $facet: {
