@@ -143,6 +143,12 @@ npm run dev
 
 ---
 
+## 🚀 Postman Collection
+
+A Postman collection is available at the root of the repository (`postman_collection.json`) for quick API testing.
+
+---
+
 ## Auto Seeding on Boot
 
 On the very first server start, two seed scripts run automatically:
