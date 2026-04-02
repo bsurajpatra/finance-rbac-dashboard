@@ -13,14 +13,14 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     // 1. Strict Validation of required fields
     if (!name || !email || !password) {
-      res.status(400).json({ error: 'Please provide all required fields: name, email, and password.' });
+      res.status(400).json({ success: false, message: 'Please provide all required fields: name, email, and password.' });
       return;
     }
 
     // 2. Prevent Duplicate Accounts
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      res.status(409).json({ error: 'A user with this email address already exists.' });
+      res.status(409).json({ success: false, message: 'A user with this email address already exists.' });
       return;
     }
 
@@ -45,12 +45,13 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     };
 
     res.status(201).json({
+      success: true,
       message: 'User registered successfully!',
-      user: userResponse,
+      data: { user: userResponse },
     });
   } catch (error) {
     console.error('[Register User Error]:', error);
-    res.status(500).json({ error: 'Internal Server Error encountered during registration.' });
+    res.status(500).json({ success: false, message: 'Internal Server Error encountered during registration.' });
   }
 };
 
@@ -63,7 +64,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     // 1. Input Validation
     if (!email || !password) {
-      res.status(400).json({ error: 'Please provide both email and password for login.' });
+      res.status(400).json({ success: false, message: 'Please provide both email and password for login.' });
       return;
     }
 
@@ -71,20 +72,20 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       // Return 401 Unauthorized for security ambiguity
-      res.status(401).json({ error: 'Invalid email or password.' });
+      res.status(401).json({ success: false, message: 'Invalid email or password.' });
       return;
     }
 
     // 2.5 Ensure the account hasn't been structurally suspended by an administrator
     if (user.isActive === false) {
-      res.status(403).json({ error: 'Forbidden: User account is inactive or disabled.' });
+      res.status(403).json({ success: false, message: 'Forbidden: User account is inactive or disabled.' });
       return;
     }
 
     // 3. Cryptographic Password Comparison
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      res.status(401).json({ error: 'Invalid email or password.' });
+      res.status(401).json({ success: false, message: 'Invalid email or password.' });
       return;
     }
 
@@ -102,14 +103,17 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     };
 
     res.status(200).json({
+      success: true,
       message: 'Login successful!',
-      token,
-      refreshToken,
-      user: userResponse,
+      data: {
+        token,
+        refreshToken,
+        user: userResponse,
+      }
     });
   } catch (error) {
     console.error('[Login User Error]:', error);
-    res.status(500).json({ error: 'Internal Server Error encountered during login.' });
+    res.status(500).json({ success: false, message: 'Internal Server Error encountered during login.' });
   }
 };
 
@@ -122,7 +126,7 @@ export const rotateToken = async (req: Request, res: Response): Promise<void> =>
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      res.status(400).json({ error: 'Missing refresh token payload.' });
+      res.status(400).json({ success: false, message: 'Missing refresh token payload.' });
       return;
     }
 
@@ -131,7 +135,7 @@ export const rotateToken = async (req: Request, res: Response): Promise<void> =>
     
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
-      res.status(403).json({ error: 'Forbidden: Valid user account not identified.' });
+      res.status(403).json({ success: false, message: 'Forbidden: Valid user account not identified.' });
       return;
     }
 
@@ -139,10 +143,11 @@ export const rotateToken = async (req: Request, res: Response): Promise<void> =>
     const token = generateAccessToken(user._id.toString(), user.role);
 
     res.status(200).json({
+      success: true,
       message: 'Token rotation successful.',
-      token,
+      data: { token },
     });
   } catch (error) {
-    res.status(401).json({ error: 'Unauthorized: Refresh token is invalid or expired.' });
+    res.status(401).json({ success: false, message: 'Unauthorized: Refresh token is invalid or expired.' });
   }
 };

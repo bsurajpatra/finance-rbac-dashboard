@@ -4,11 +4,13 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
+import morgan from 'morgan';
 import authRoutes from './routes/auth.routes';
 import transactionRoutes from './routes/transaction.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import userRoutes from './routes/user.routes';
 import { seedAdminUser } from './config/seedAdmin';
+import { seedDummyData } from './config/seedDummy';
 
 // Load environment variables from .env
 dotenv.config();
@@ -18,6 +20,7 @@ const PORT = process.env.PORT;
 
 // Middleware setup
 app.use(helmet()); // Set various security-related HTTP headers automatically
+app.use(morgan('dev')); // Log every incoming HTTP request to the terminal in a clean, readable format
 app.use(cors()); // Enable CORS for all routes (allows frontend to communicate with backend)
 app.use(express.json()); // Parse JSON bodies
 
@@ -49,25 +52,27 @@ mongoose.connect(mongoURI!)
     console.log('Connected to MongoDB successfully');
     // Fire the logic layer ensuring RBAC limits load cleanly immediately post-boot
     await seedAdminUser();
+    // Populate with synthetic data for visualization testing
+    await seedDummyData();
   })
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/users', userRoutes);
+// Routes (API v1)
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // Basic health check route
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).send('Server running');
+app.get('/api/v1/health', (req: Request, res: Response) => {
+  res.status(200).json({ success: true, message: 'Server context active and reachable (v1).' });
 });
 
 // Basic Error Handling Middleware
 // Catches all errors passed to next(err)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled Error:', err.stack);
-  res.status(500).json({ error: 'Something went wrong on the server!' });
+  res.status(500).json({ success: false, message: 'Internal Server Error: Execution context crashed.' });
 });
 
 // Start the server

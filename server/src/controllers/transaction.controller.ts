@@ -35,17 +35,18 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
     });
 
     res.status(201).json({
+      success: true,
       message: 'Transaction successfully processed and recorded.',
-      transaction: newTransaction,
+      data: { transaction: newTransaction },
     });
   } catch (error: any) {
     console.error('[Create Transaction Exception]:', error);
     // Graceful routing of native MongoDB/Mongoose formatting errors
     if (error.name === 'ValidationError') {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ success: false, message: error.message });
       return;
     }
-    res.status(500).json({ error: 'A critical Server Error interrupted the transaction creation.' });
+    res.status(500).json({ success: false, message: 'A critical Server Error interrupted the transaction creation.' });
   }
 };
 
@@ -125,19 +126,22 @@ export const getTransactions = async (req: Request, res: Response): Promise<void
     const total = await Transaction.countDocuments(filter);
 
     res.status(200).json({
+      success: true,
       message: 'Payload generation successful.',
-      count: transactions.length,
-      transactions,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
+      data: {
+        count: transactions.length,
+        transactions,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        }
       }
     });
   } catch (error) {
     console.error('[Fetch Transactions Exception]:', error);
-    res.status(500).json({ error: 'Internal Data Retrieval Error.' });
+    res.status(500).json({ success: false, message: 'Internal Data Retrieval Error.' });
   }
 };
 
@@ -167,21 +171,22 @@ export const updateTransaction = async (req: Request, res: Response): Promise<vo
 
     // Document mapped natively as missing
     if (!updatedDocument) {
-      res.status(404).json({ error: 'Transaction ID failed to reference an active resource.' });
+      res.status(404).json({ success: false, message: 'Transaction ID failed to reference an active resource.' });
       return;
     }
 
     res.status(200).json({
+      success: true,
       message: 'Transaction mutation accepted and propagated.',
-      transaction: updatedDocument,
+      data: { transaction: updatedDocument },
     });
   } catch (error: any) {
     console.error('[Update Transaction Exception]:', error);
     if (error.name === 'CastError' || error.name === 'ValidationError') {
-      res.status(400).json({ error: 'Failed constraint validation checks over mutated fields.' });
+      res.status(400).json({ success: false, message: 'Failed constraint validation checks over mutated fields.' });
       return;
     }
-    res.status(500).json({ error: 'Server disruption interrupted the update logic.' });
+    res.status(500).json({ success: false, message: 'Server disruption interrupted the update logic.' });
   }
 };
 
@@ -206,20 +211,21 @@ export const deleteTransaction = async (req: Request, res: Response): Promise<vo
     );
 
     if (!removedDocument) {
-      res.status(404).json({ error: 'Transaction not found. No modifications occurred.' });
+      res.status(404).json({ success: false, message: 'Transaction not found. No modifications occurred.' });
       return;
     }
 
     res.status(200).json({
+      success: true,
       message: 'Transaction successfully deactivated. Record preserved in audit log.',
-      id: transactionId,
+      data: { id: transactionId },
     });
   } catch (error: any) {
     console.error('[Delete Transaction Exception]:', error);
     if (error.name === 'CastError') {
-      res.status(400).json({ error: 'Malformed MongoDB Identity Format.' });
+      res.status(400).json({ success: false, message: 'Malformed MongoDB Identity Format.' });
       return;
     }
-    res.status(500).json({ error: 'Internal Server Error detected during database purge.' });
+    res.status(500).json({ success: false, message: 'Internal Server Error detected during database purge.' });
   }
 };

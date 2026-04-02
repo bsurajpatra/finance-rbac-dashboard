@@ -37,18 +37,21 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const total = await User.countDocuments(filter);
 
     res.status(200).json({
+      success: true,
       message: 'Active system users compiled successfully.',
-      users,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit)
+      data: {
+        users,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit)
+        }
       }
     });
   } catch (error) {
     console.error('[Get Users Exception]:', error);
-    res.status(500).json({ error: 'A Server Error interrupted user retrieval.' });
+    res.status(500).json({ success: false, message: 'A Server Error interrupted user retrieval.' });
   }
 };
 
@@ -63,7 +66,7 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
 
     // Strict validation protecting against corrupt roles bypassing the Schema definitions
     if (!role || !Object.values(Role).includes(role)) {
-      res.status(400).json({ error: 'Malformed Data: Please specify a completely valid enum property (Viewer, Analyst, Admin).' });
+      res.status(400).json({ success: false, message: 'Malformed Data: Please specify a completely valid enum property (Viewer, Analyst, Admin).' });
       return;
     }
 
@@ -74,21 +77,22 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
     ).select('-password');
 
     if (!updatedUser) {
-      res.status(404).json({ error: 'Identified target user could not be found.' });
+      res.status(404).json({ success: false, message: 'Identified target user could not be found.' });
       return;
     }
 
     res.status(200).json({
+      success: true,
       message: 'User clearance properly established.',
-      user: updatedUser
+      data: { user: updatedUser }
     });
   } catch (error: any) {
     console.error('[Update Role Exception]:', error);
     if (error.name === 'CastError') {
-      res.status(400).json({ error: 'Malformed MongoDB Identity payload formatting.' });
+      res.status(400).json({ success: false, message: 'Malformed MongoDB Identity payload formatting.' });
       return;
     }
-    res.status(500).json({ error: 'Internal Server Error encountered while mutating security clearances.' });
+    res.status(500).json({ success: false, message: 'Internal Server Error encountered while mutating security clearances.' });
   }
 };
 
@@ -102,7 +106,7 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
     const { isActive } = req.body;
 
     if (isActive === undefined) {
-      res.status(400).json({ error: 'Malformed Data: The `isActive` boolean property is technically required.' });
+      res.status(400).json({ success: false, message: 'Malformed Data: The `isActive` boolean property is technically required.' });
       return;
     }
 
@@ -113,20 +117,21 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
     ).select('-password');
 
     if (!updatedUser) {
-      res.status(404).json({ error: 'Identified target user could not be found.' });
+      res.status(404).json({ success: false, message: 'Identified target user could not be found.' });
       return;
     }
 
     res.status(200).json({
+      success: true,
       message: `User account successfully ${isActive ? 'activated' : 'suspended'}.`,
-      user: updatedUser
+      data: { user: updatedUser }
     });
   } catch (error: any) {
     console.error('[Update Status Exception]:', error);
     if (error.name === 'CastError') {
-      res.status(400).json({ error: 'Malformed MongoDB Identity payload formatting.' });
+      res.status(400).json({ success: false, message: 'Malformed MongoDB Identity payload formatting.' });
       return;
     }
-    res.status(500).json({ error: 'Internal Server Error encountered while isolating accounts.' });
+    res.status(500).json({ success: false, message: 'Internal Server Error encountered while isolating accounts.' });
   }
 };

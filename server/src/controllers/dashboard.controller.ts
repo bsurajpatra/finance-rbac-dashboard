@@ -13,7 +13,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     const userRole = req.user?.role;
 
     if (!userId || !userRole) {
-      res.status(401).json({ error: 'Unauthorized: Session mappings missing.' });
+      res.status(401).json({ success: false, message: 'Unauthorized: Session mappings missing.' });
       return;
     }
 
@@ -52,9 +52,14 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
     ]);
 
     // Unpack parallel processing array mapping zero mathematically to null voids 
-    const totalIncome = aggregationResult[0]?.incomeSummary[0]?.total || 0;
-    const totalExpense = aggregationResult[0]?.expenseSummary[0]?.total || 0;
-    const categoryBreakdown = aggregationResult[0]?.categoryBreakdown || [];
+    const totalIncome = Math.round((aggregationResult[0]?.incomeSummary[0]?.total || 0) * 100) / 100;
+    const totalExpense = Math.round((aggregationResult[0]?.expenseSummary[0]?.total || 0) * 100) / 100;
+    
+    // Explicitly round category breakdowns
+    const categoryBreakdown = (aggregationResult[0]?.categoryBreakdown || []).map((cat: any) => ({
+      ...cat,
+      total: Math.round(cat.total * 100) / 100
+    }));
 
     /**
      * 3. Independent Retrieval Query
@@ -66,14 +71,18 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
 
     // 4. Export structured layout satisfying the frontend UI dashboard architecture 
     res.status(200).json({
-      totalIncome,
-      totalExpense,
-      netBalance: totalIncome - totalExpense,
-      categoryBreakdown,
-      recentTransactions,
+      success: true,
+      message: 'Dashboard analytics data compiled.',
+      data: {
+        totalIncome,
+        totalExpense,
+        netBalance: Math.round((totalIncome - totalExpense) * 100) / 100,
+        categoryBreakdown,
+        recentTransactions,
+      }
     });
   } catch (error) {
     console.error('[Dashboard Summary Exception]:', error);
-    res.status(500).json({ error: 'Server disruption while parsing dashboard analytics.' });
+    res.status(500).json({ success: false, message: 'Server disruption while parsing dashboard analytics.' });
   }
 };
