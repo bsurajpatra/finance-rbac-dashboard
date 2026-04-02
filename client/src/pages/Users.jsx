@@ -99,7 +99,7 @@ export default function Users() {
         {errorMsg && <div className="p-4 bg-red-50 text-red-600 border-b border-red-200 font-medium">{errorMsg}</div>}
         {successMsg && <div className="p-4 bg-green-50 text-green-700 border-b border-green-200 font-medium transition-all">{successMsg}</div>}
         {loading ? <p className="p-6 text-gray-500 animate-pulse text-center font-medium">Interrogating Server Directory Hash Arrays...</p> : (
-          <table className="w-full text-left text-sm border-collapse">
+          <table className="w-full text-left text-sm border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
                 <th className="p-4 font-semibold">User Identity String</th>

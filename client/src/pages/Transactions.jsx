@@ -69,9 +69,9 @@ export default function Transactions() {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (tx) => {
     if (!isAdmin) return;
-    setDeletableId(id);
+    setDeletableId(tx._id);
     setShowDeleteModal(true);
   };
 
@@ -135,10 +135,10 @@ export default function Transactions() {
         </div>
 
         {/* Mongoose Payload Render Table */}
-        <div className="bg-white border border-gray-200 shadow-sm">
+        <div className="bg-white border border-gray-200 shadow-sm overflow-x-auto">
           {errorMsg && <div className="p-3 bg-red-50 text-red-600 border-b border-red-200">{errorMsg}</div>}
           {loading ? <p className="p-6 text-gray-500 animate-pulse text-center">Interrogating Server Database...</p> : (
-            <table className="w-full text-left text-sm border-collapse">
+            <table className="w-full text-left text-sm border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
                   <th className="p-4 font-semibold">Date</th>
@@ -146,7 +146,7 @@ export default function Transactions() {
                   <th className="p-4 font-semibold">Classification</th>
                   <th className="p-4 font-semibold">Capital</th>
                   <th className="p-4 font-semibold">Note</th>
-                  {isAdmin && <th className="p-4 font-semibold w-32">Administrative</th>}
+                  {isAdmin && <th className="p-4 font-semibold w-min whitespace-nowrap">Administrative</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -159,7 +159,7 @@ export default function Transactions() {
                     <td className="p-4 text-gray-500 italic max-w-xs truncate">{tx.note || 'None'}</td>
                     {isAdmin && (
                       <td className="p-4 whitespace-nowrap relative">
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 whitespace-nowrap">
                           <button 
                             onClick={() => handleEdit(tx)} 
                             className="text-blue-600 hover:text-blue-800 font-medium"
@@ -167,30 +167,11 @@ export default function Transactions() {
                           
                           <div className="relative inline-block">
                             <button 
-                              onClick={() => handleDelete(tx._id)} 
+                              onClick={() => handleDelete(tx)} 
                               className="text-red-600 hover:text-red-800 font-medium"
                             >Terminate</button>
 
-                            {/* Small Inline Confirmation Window - Positioned BELOW */}
-                            {showDeleteModal && deletableId === tx._id && (
-                              <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 shadow-xl rounded p-3 z-50 animate-in fade-in slide-in-from-top-2">
-                                <p className="text-xs font-bold text-gray-800 mb-2 text-center">Delete this record?</p>
-                                <div className="flex gap-2">
-                                  <button 
-                                    onClick={confirmDelete}
-                                    className="flex-1 bg-red-600 text-white text-[10px] font-bold py-1.5 rounded uppercase hover:bg-red-700 shadow-sm"
-                                  >
-                                    Yes, Purge
-                                  </button>
-                                  <button 
-                                    onClick={() => { setShowDeleteModal(false); setDeletableId(null); }}
-                                    className="flex-1 bg-gray-100 text-gray-700 text-[10px] font-bold py-1.5 rounded uppercase hover:bg-gray-200 border border-gray-300 shadow-sm"
-                                  >
-                                    Nvm
-                                  </button>
-                                </div>
-                              </div>
-                            )}
+
                           </div>
                         </div>
                       </td>
@@ -248,6 +229,43 @@ export default function Transactions() {
         </div>
       )}
 
+
+      {/* 4. Universal Administrative Purge Confirmation Backdrop */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white max-w-md w-full shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">
+              <div className="p-6">
+                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                   </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Confirm Record Purge</h3>
+                <p className="text-gray-500 text-center text-sm mb-6">
+                  You are about to permanently remove this financial record from the organizational ledger. This action is irreversible and will update all analytical models immediately.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button 
+                    onClick={() => { setShowDeleteModal(false); setDeletableId(null); }}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-colors"
+                  >
+                    Abort Action
+                  </button>
+                  <button 
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-95"
+                  >
+                    Confirm & Purge
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-3 border-t border-gray-100 text-[10px] text-gray-400 uppercase tracking-tighter text-center font-medium">
+                Administrative Authorization Level: Root Required
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
