@@ -143,9 +143,11 @@ npm run dev
 
 ---
 
-## 🚀 Postman Collection
+## 🚀 Postman Documentation
 
-A Postman collection is available at the root of the repository (`postman_collection.json`) for quick API testing.
+Full API documentation is available at: [Postman Docs](https://documenter.getpostman.com/view/38891892/2sBXiomAA6)
+
+A local Postman collection is also available at the root of the repository (`postman_collection.json`) for quick API testing.
 
 ---
 
