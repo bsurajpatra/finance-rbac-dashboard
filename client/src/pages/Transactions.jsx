@@ -21,6 +21,10 @@ export default function Transactions() {
   const [editId, setEditId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // 1. Modal State Management
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletableId, setDeletableId] = useState(null);
+
   const fetchTransactions = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -32,9 +36,9 @@ export default function Transactions() {
       if (endDate) params.append('endDate', endDate);
 
       const res = await api.get(`/transactions?${params.toString()}`);
-      setTransactions(res.data.transactions);
+      setTransactions(res.data.data.transactions);
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Database Sync Failed.');
+      setErrorMsg(err.response?.data?.message || 'Database Sync Failed.');
     } finally {
       setLoading(false);
     }
@@ -61,18 +65,25 @@ export default function Transactions() {
       setEditId(null);
       fetchTransactions(); // Hydrate page cleanly preventing stale elements
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Backend failed to modify record structure.');
+      setErrorMsg(err.response?.data?.message || 'Backend failed to modify record structure.');
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (!isAdmin) return;
-    if (!window.confirm('Action Irreversible: Proceed with permanent destruction?')) return;
+    setDeletableId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletableId) return;
     try {
-      await api.delete(`/transactions/${id}`);
+      await api.delete(`/transactions/${deletableId}`);
+      setShowDeleteModal(false);
+      setDeletableId(null);
       fetchTransactions();
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Target constraint deletion error.');
+      setErrorMsg(err.response?.data?.message || 'Target constraint deletion error.');
     }
   };
 
@@ -124,7 +135,7 @@ export default function Transactions() {
         </div>
 
         {/* Mongoose Payload Render Table */}
-        <div className="bg-white border border-gray-200 shadow-sm overflow-x-auto">
+        <div className="bg-white border border-gray-200 shadow-sm">
           {errorMsg && <div className="p-3 bg-red-50 text-red-600 border-b border-red-200">{errorMsg}</div>}
           {loading ? <p className="p-6 text-gray-500 animate-pulse text-center">Interrogating Server Database...</p> : (
             <table className="w-full text-left text-sm border-collapse">
@@ -147,15 +158,41 @@ export default function Transactions() {
                     <td className={`p-4 font-bold whitespace-nowrap ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>${tx.amount}</td>
                     <td className="p-4 text-gray-500 italic max-w-xs truncate">{tx.note || 'None'}</td>
                     {isAdmin && (
-                      <td className="p-4 whitespace-nowrap flex gap-3">
-                        <button 
-                          onClick={() => handleEdit(tx)} 
-                          className="text-blue-600 hover:text-blue-800 font-medium"
-                        >Edit</button>
-                        <button 
-                          onClick={() => handleDelete(tx._id)} 
-                          className="text-red-600 hover:text-red-800 font-medium"
-                        >Terminate</button>
+                      <td className="p-4 whitespace-nowrap relative">
+                        <div className="flex gap-3">
+                          <button 
+                            onClick={() => handleEdit(tx)} 
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >Edit</button>
+                          
+                          <div className="relative inline-block">
+                            <button 
+                              onClick={() => handleDelete(tx._id)} 
+                              className="text-red-600 hover:text-red-800 font-medium"
+                            >Terminate</button>
+
+                            {/* Small Inline Confirmation Window - Positioned BELOW */}
+                            {showDeleteModal && deletableId === tx._id && (
+                              <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 shadow-xl rounded p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                                <p className="text-xs font-bold text-gray-800 mb-2 text-center">Delete this record?</p>
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={confirmDelete}
+                                    className="flex-1 bg-red-600 text-white text-[10px] font-bold py-1.5 rounded uppercase hover:bg-red-700 shadow-sm"
+                                  >
+                                    Yes, Purge
+                                  </button>
+                                  <button 
+                                    onClick={() => { setShowDeleteModal(false); setDeletableId(null); }}
+                                    className="flex-1 bg-gray-100 text-gray-700 text-[10px] font-bold py-1.5 rounded uppercase hover:bg-gray-200 border border-gray-300 shadow-sm"
+                                  >
+                                    Nvm
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </td>
                     )}
                   </tr>

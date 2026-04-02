@@ -7,7 +7,7 @@ if (!baseURL) {
 }
 
 const api = axios.create({
-  baseURL: `${(baseURL).replace(/\/$/, '')}/api`,
+  baseURL: `${(baseURL).replace(/\/$/, '')}/api/v1`,
 });
 
 // Interceptor intelligently catches every outgoing request and aggressively mounts the auth signature

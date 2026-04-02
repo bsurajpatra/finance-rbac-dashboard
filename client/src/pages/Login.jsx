@@ -17,7 +17,7 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Fatal Login Disruption');
+      setError(err.response?.data?.message || 'Fatal Login Disruption');
     } finally {
       setLoading(false);
     }

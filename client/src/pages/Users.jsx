@@ -20,13 +20,13 @@ export default function Users() {
     setErrorMsg('');
     try {
       const res = await api.get(`/users?page=${page}&limit=10&email=${emailQuery}`);
-      setUsersList(res.data.users);
-      setTotalPages(res.data.pagination.pages);
+      setUsersList(res.data.data.users);
+      setTotalPages(res.data.data.pagination.pages);
     } catch (err) {
       if (err.response?.status === 403) {
         setErrorMsg('Access Denied: You require Administrator privileges to view this page.');
       } else {
-        setErrorMsg(err.response?.data?.error || 'Database Sync Failed.');
+        setErrorMsg(err.response?.data?.message || 'Database Sync Failed.');
       }
     } finally {
       setLoading(false);
@@ -49,7 +49,7 @@ export default function Users() {
       fetchUsers(); // Cleanly re-hydrate application rendering dynamically avoiding stale matrices
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Logic Exception: Failed to execute role constraint assignment.');
+      setErrorMsg(err.response?.data?.message || 'Logic Exception: Failed to execute role constraint assignment.');
     }
   };
 
@@ -62,7 +62,7 @@ export default function Users() {
       fetchUsers();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Logic Exception: Unable to modify operational target statuses.');
+      setErrorMsg(err.response?.data?.message || 'Logic Exception: Unable to modify operational target statuses.');
     }
   };
 

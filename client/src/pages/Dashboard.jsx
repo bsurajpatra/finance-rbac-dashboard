@@ -15,12 +15,12 @@ export default function Dashboard() {
     const fetchSummary = async () => {
       try {
         const res = await api.get('/dashboard/summary');
-        setData(res.data);
+        setData(res.data.data);
       } catch (err) {
         if (err.response?.status === 403) {
           setError('Access Denied (403): Analytical structures natively mandate Analyst or Admin clearance layers.');
         } else {
-          setError(err.response?.data?.error || 'Failed to initialize metric pipelines.');
+          setError(err.response?.data?.message || 'Failed to initialize metric pipelines.');
         }
       }
     };
@@ -31,10 +31,10 @@ export default function Dashboard() {
   if (user?.role === 'VIEWER') {
     return (
       <div className="max-w-7xl mx-auto mt-10 p-6 flex justify-center">
-         <div className="p-8 bg-gray-50 text-gray-700 text-center border border-gray-200 shadow-sm max-w-lg">
-            <h2 className="text-2xl font-bold mb-2 text-red-600">Access Denied (403)</h2>
-            <p className="font-medium">Your current <b className="text-gray-900">VIEWER</b> security clearance does not map privileges sufficient to interrogate global organizational analytics or internal reporting structures.</p>
-         </div>
+        <div className="p-8 bg-gray-50 text-gray-700 text-center border border-gray-200 shadow-sm max-w-lg">
+          <h2 className="text-2xl font-bold mb-2 text-red-600">Access Denied (403)</h2>
+          <p className="font-medium">Your current <b className="text-gray-900">VIEWER</b> security clearance does not map privileges sufficient to interrogate global organizational analytics or internal reporting structures.</p>
+        </div>
       </div>
     );
   }
@@ -45,10 +45,9 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Dashboard Analytics 
-        <span className="ml-3 text-xs uppercase tracking-wider bg-gray-200 text-gray-600 py-1 px-2 rounded">Current Context: {user?.role}</span>
+        Dashboard Analytics
       </h2>
-      
+
       {/* Prime KPI Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div className="border border-gray-200 p-6 shadow-sm bg-white">

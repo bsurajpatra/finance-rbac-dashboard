@@ -68,8 +68,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', res.data.token);
-    setUser(jwtDecode(res.data.token)); // Update React runtime memory with the extracted identity
+    const { token, refreshToken } = res.data.data;
+    localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
+    setUser(jwtDecode(token)); // Update React runtime memory with the extracted identity
   };
 
   const register = async (name, email, password) => {
