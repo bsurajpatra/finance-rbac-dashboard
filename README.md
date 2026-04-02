@@ -213,6 +213,16 @@ On the very first server start, two seed scripts run automatically:
 
 ---
 
+---
+
+## Roles
+
+The system is designed with a hierarchical RBAC structure to ensure data security while maintaining operational visibility.
+
+- **Viewer**: Read-only access to browse transaction logs. Restricted from dashboard summaries or data manipulation.
+- **Analyst**: Strategic read access. Can browse transactions and access the full dashboard summary (insights, trends, category totals).
+- **Admin**: Full administrative authority. Can manage all financial records (CRUD), view all summaries, and manage user accounts (list, upgrade roles, active/deactive status).
+
 ## RBAC Matrix
 
 | Action | Viewer | Analyst | Admin |

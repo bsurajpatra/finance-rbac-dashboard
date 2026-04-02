@@ -6,20 +6,20 @@
  */
 export enum Role {
   /**
-   * Has read-only access to view financial dashboards, charts, and public metrics.
-   * Cannot mutate data or view sensitive user configurations.
+   * Has basic access to view financial transactions.
+   * Restricted from viewing aggregated dashboard summaries or any write operations.
    */
   VIEWER = 'VIEWER',
 
   /**
-   * Has read-write access to analyze data, generate internal reports, 
-   * and update standard financial metrics.
+   * Can view all transaction logs and access high-level dashboard summaries.
+   * Restrict from any write operations (Create, Update, Delete).
    */
   ANALYST = 'ANALYST',
 
   /**
-   * Superuser access. Has full administrative privileges, 
-   * including user management, role reassignment, and system configuration.
+   * Full administrative control. Can view all data, manage financial records 
+   * (Create, Update, Delete), and manage user accounts (list, update role/status).
    */
   ADMIN = 'ADMIN',
 }
