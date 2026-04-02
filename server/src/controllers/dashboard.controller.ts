@@ -47,6 +47,33 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
             { $project: { _id: 0, category: '$_id', total: 1 } },
             { $sort: { total: -1 } } // Organizes largest financial pools downward
           ],
+          monthlyTrends: [
+            {
+              $group: {
+                _id: {
+                  year: { $year: '$date' },
+                  month: { $month: '$date' }
+                },
+                income: {
+                  $sum: { $cond: [{ $eq: ['$type', 'income'] }, '$amount', 0] }
+                },
+                expense: {
+                  $sum: { $cond: [{ $eq: ['$type', 'expense'] }, '$amount', 0] }
+                }
+              }
+            },
+            { $sort: { '_id.year': -1, '_id.month': -1 } },
+            { $limit: 6 }, // Last rolling 6 months
+            {
+              $project: {
+                _id: 0,
+                year: '$_id.year',
+                month: '$_id.month',
+                income: { $round: ['$income', 2] },
+                expense: { $round: ['$expense', 2] }
+              }
+            }
+          ]
         }
       }
     ]);
@@ -60,6 +87,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
       ...cat,
       total: Math.round(cat.total * 100) / 100
     }));
+
+    const monthlyTrends = aggregationResult[0]?.monthlyTrends || [];
 
     /**
      * 3. Independent Retrieval Query
@@ -78,6 +107,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         totalExpense,
         netBalance: Math.round((totalIncome - totalExpense) * 100) / 100,
         categoryBreakdown,
+        monthlyTrends,
         recentTransactions,
       }
     });

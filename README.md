@@ -1,6 +1,6 @@
 # Finance RBAC Dashboard
 
-**Repository:** [github.com/bsurajpatra/finance-rbac-dashboard](https://github.com/bsurajpatra/finance-rbac-dashboard)
+**Repository:** [github.com/bsurajpatra/finance-rbac-dashboard](https://github.com/bsurajpatra/finance-rbac-dashboard.git)
 
 A backend-focused finance dashboard system built with Node.js, Express, TypeScript, and MongoDB Atlas. Implements role-based access control (RBAC) across three roles — Viewer, Analyst, and Admin — covering financial transaction management, dashboard analytics, and user administration.
 
@@ -128,7 +128,7 @@ npm run dev
 **What the frontend includes:**
 
 - **Login / Register pages** — authenticate with any seeded or registered user account
-- **Dashboard page** — displays total income, expenses, net balance, category breakdown, and recent transactions (visible to Analyst and Admin only)
+- **Dashboard page** — displays total income, expenses, net balance, category breakdown, monthly performance trend bars, and recent transactions (visible to Analyst and Admin only)
 - **Transactions page** — browse, filter, and paginate all financial records (visible to all roles; create/update/delete restricted to Admin)
 - **Users page** — list all users, update roles, and toggle account status (Admin only)
 
@@ -189,7 +189,7 @@ On the very first server start, two seed scripts run automatically:
 
 | Method | Route | Access | Description |
 |--------|-------|--------|-------------|
-| GET | `/summary` | Analyst, Admin | Returns total income, expenses, net balance, category breakdown, recent transactions |
+| GET | `/summary` | Analyst, Admin | Returns total income, expenses, net balance, category breakdown, monthly performance trends (6 months), and recent transactions |
 
 ### Users — `/api/v1/users`
 
@@ -224,6 +224,7 @@ On the very first server start, two seed scripts run automatically:
 
 - JWT authentication — 15-minute access token + 7-day refresh token rotation
 - Auto logout after 10 minutes of client inactivity
+- Monthly financial performance trends — rolling 6-month Bar Chart visualization 
 - Soft delete on transactions — records are flagged `isDeleted: true`, never physically removed, preserving the audit trail
 - Pagination on transactions and users
 - Filtering on transactions by type, category, and date range
