@@ -11,4 +11,8 @@ router.post('/register', registerUser);
 // Authenticates credentials dynamically via bcrypt comparing, returning a JWT token payload.
 router.post('/login', loginUser);
 
+// Route: POST /api/auth/refresh
+// Validates a Refresh Token and issues a fresh Access Token.
+router.post('/refresh', rotateToken);
+
 export default router;
